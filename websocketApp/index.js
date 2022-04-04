@@ -2,20 +2,29 @@
 const WebSocketServer = require('ws');
 var http = require("http");
 var fs = require("fs");
- 
+
 // Creating a new websocket server
 const wss = new WebSocketServer.Server({ port: 8080 })
+//const wsClient = new WebSocketServer.Server({port: 8079})
 
-// Creating connection using websocket
+var dataHolder = "nan"
+
+
+let sockets = [];
 wss.on("connection", ws => {
     console.log("new client connected");
-    // sending message
+    sockets.push(ws);
+
     ws.on("message", data => {
         console.log(`Client has sent us: ${data}`)
+        dataHolder = String(data)
+        sockets.forEach(s => {
+            s.send(dataHolder);
+        });
     });
     // handling what to do when clients disconnects from server
     ws.on("close", () => {
-        console.log("the client has connected");
+        console.log("the client has disconnected");
     });
     // handling client connection error
     ws.onerror = function () {
@@ -24,9 +33,32 @@ wss.on("connection", ws => {
 });
 console.log("The WebSocket server is running on port 8080");
 
-var server = http.createServer(function(request, response) {  
-    response.writeHead(200, {  
-        'Content-Type': 'text/html'  
+/*
+wsClient.on("connection", ws=> {
+    //console.log("new client")
+
+    ws.on("message", data => {
+        console.log(`port:8079: ${data}`)
+    })
+
+    ws.send(dataHolder)
+
+    ws.on("ping", ()=>{
+        console.log("ping received")
+    })
+
+    ws.on("close", () => {
+        console.log("dead");
+    });
+    // handling client connection error
+    ws.onerror = function () {
+        console.log("Some Error occurred")
+    }
+})*/
+
+var server = http.createServer(function(request, response) {
+    response.writeHead(200, {
+        'Content-Type': 'text/html'
     });
     fs.readFile('./index.html', null, function (error, data) {
         if (error) {
