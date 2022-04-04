@@ -3,9 +3,7 @@ const WebSocketServer = require('ws');
 var http = require("http");
 var fs = require("fs");
 
-// Creating a new websocket server
 const wss = new WebSocketServer.Server({ port: 8080 })
-//const wsClient = new WebSocketServer.Server({port: 8079})
 
 var dataHolder = "nan"
 
@@ -32,29 +30,6 @@ wss.on("connection", ws => {
     }
 });
 console.log("The WebSocket server is running on port 8080");
-
-/*
-wsClient.on("connection", ws=> {
-    //console.log("new client")
-
-    ws.on("message", data => {
-        console.log(`port:8079: ${data}`)
-    })
-
-    ws.send(dataHolder)
-
-    ws.on("ping", ()=>{
-        console.log("ping received")
-    })
-
-    ws.on("close", () => {
-        console.log("dead");
-    });
-    // handling client connection error
-    ws.onerror = function () {
-        console.log("Some Error occurred")
-    }
-})*/
 
 var server = http.createServer(function(request, response) {
     response.writeHead(200, {
