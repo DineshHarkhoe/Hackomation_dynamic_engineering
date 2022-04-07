@@ -26,6 +26,6 @@
 
 #define DEG2RAD(deg) (deg * M_PI / 180.0f)
 
-void pause(void);
+void pauses(void);
 
 #endif
