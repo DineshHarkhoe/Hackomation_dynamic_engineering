@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
+
+#include "soc/rtc.h"
+#include "nvs_flash.h"
+#include "protocol_examples_common.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -11,11 +16,11 @@
 #include "esp_task_wdt.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "esp_wifi.h"
+#include "esp_websocket_client.h"
 
 #include "driver/i2c.h"
 #include "driver/mcpwm.h"
-
-#include "soc/rtc.h"
 
 #include "../components/ahrs/MadgwickAHRS.h"
 #include "../components/mpu9250/mpu9250.h"
@@ -25,9 +30,6 @@
 
 static const char *TAG = "Drone";
 
-/*
- * GPIO pin definitions
- */
 #define BACK_RIGHT_CW_GPIO 9
 #define BACK_LEFT_CCW_GPIO 10
 #define FRONT_LEFT_CW_GPIO 2
@@ -39,6 +41,7 @@ static const char *TAG = "Drone";
 #define HC_SR04_PIN_TRIG    GPIO_NUM_33
 #define TRIGGER_THREAD_STACK_SIZE 512
 #define TRIGGER_THREAD_PRIORITY 5
+
 _Static_assert(HC_SR04_SAMPLE_PERIOD_MS > 50, "Sample period too short!");
 
 typedef struct {
@@ -50,6 +53,7 @@ static uint32_t cap_val_begin_of_sample = 0;
 static uint32_t cap_val_end_of_sample = 0;
 
 static QueueHandle_t cap_queue;
+esp_websocket_client_handle_t client;
 
 calibration_t cal = {
     .mag_offset = {.x = -31594.468750, .y = 5600.710938, .z = -4488.644531},
@@ -96,26 +100,70 @@ static void transform_mag(vector_t *v)
   v->z = -x;
 }
 
-void get_mpu9265(float *heading, float *pitch, float *roll, float *temp){
+static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+    esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
+    switch (event_id) {
+    case WEBSOCKET_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "WEBSOCKET_EVENT_CONNECTED");
+        break;
+    case WEBSOCKET_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "WEBSOCKET_EVENT_DISCONNECTED");
+        break;
+    case WEBSOCKET_EVENT_DATA:
+        //ESP_LOGI(TAG, "WEBSOCKET_EVENT_DATA");
+        break;
+    case WEBSOCKET_EVENT_ERROR:
+        ESP_LOGI(TAG, "WEBSOCKET_EVENT_ERROR");
+        break;
+    }
+}
 
-    vector_t va, vg, vm;
+void websocket_setup(){
+    ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_ERROR_CHECK(example_connect());
 
-    // Get the Accelerometer, Gyroscope and Magnetometer values.
-    ESP_ERROR_CHECK(get_accel_gyro_mag(&va, &vg, &vm));
+    esp_websocket_client_config_t websocket_cfg = {};
+    websocket_cfg.uri = "ws://192.168.1.15:8080";
 
-    // Transform these values to the orientation of our device.
-    transform_accel_gyro(&va);
-    transform_accel_gyro(&vg);
-    transform_mag(&vm);
+    ESP_LOGI(TAG, "Connecting to %s...", websocket_cfg.uri);
 
-    // Apply the AHRS algorithm
-    MadgwickAHRSupdate(DEG2RAD(vg.x), DEG2RAD(vg.y), DEG2RAD(vg.z),
-                       va.x, va.y, va.z,
-                       vm.x, vm.y, vm.z);
+    client = esp_websocket_client_init(&websocket_cfg);
+    esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, (void *)client);
 
-    ESP_ERROR_CHECK(get_temperature_celsius(temp));
+    esp_websocket_client_start(client);
+}
 
-    MadgwickGetEulerAnglesDegrees(heading, pitch, roll);
+void post_to_websocket(float *heading, float *pitch, float *roll, float *hcsr04Alt){
+    //init empty arrays
+    char str[200] = "{\"heading\": ";
+    char headingStr[10];
+    char pitchStr[10];
+    char rollStr[10];
+    char hcsr04AltStr[10];
+
+    //convert float to string
+    sprintf(headingStr, "%2.3f", *heading);
+    sprintf(pitchStr, "%2.3f", *pitch);
+    sprintf(rollStr, "%2.3f", *roll);
+    sprintf(hcsr04AltStr, "%2.3f", *hcsr04Alt);
+
+    //make hardcoded JSON string to send
+    strcat(str, headingStr);
+    strcat(str, ", \"pitch\": ");
+    strcat(str, pitchStr);
+    strcat(str, ", \"roll\": ");
+    strcat(str, rollStr);
+    strcat(str, ", \"HCSR04\": ");
+    strcat(str, hcsr04AltStr);
+    strcat(str, "}");
+
+    if (esp_websocket_client_is_connected(client)) {
+        //ESP_LOGI(TAG, "Sending %s", str);
+        esp_websocket_client_send_text(client, str, strlen(str), portMAX_DELAY);
+    }
 }
 
 /**
@@ -224,7 +272,7 @@ void mcpwm_setup(){
     ESP_ERROR_CHECK(mcpwm_set_duty_in_us(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_OPR_A, 1000));
     ESP_ERROR_CHECK(mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_OPR_A, 1000));
     ESP_ERROR_CHECK(mcpwm_set_duty_in_us(MCPWM_UNIT_1, MCPWM_TIMER_1, MCPWM_OPR_A, 1000));
-    vTaskDelay(3000);   //30sec
+    //vTaskDelay(3000);   //30sec
 }
 
 void set_bldc_speed(int fr, int fl, int br, int bl){
@@ -236,15 +284,73 @@ void set_bldc_speed(int fr, int fl, int br, int bl){
     vTaskDelay(5);
 }
 
-void app_main(void)
+void run_sensor(void)
 {
-    mcpwm_setup();
-    hcsr04_setup();
+
     i2c_mpu9250_init(&cal);
     MadgwickAHRSinit(SAMPLE_FREQ_Hz, 0.8);
 
-    float heading, pitch, roll, temp, alt;
-    get_hcsr04(&alt);
-    get_mpu9265(&heading, &pitch, &roll, &temp);
-    ESP_LOGI(TAG, "heading: %2.3f°, pitch: %2.3f°, roll: %2.3f°, Temp %2.3f°C, height: %2.3fcm", heading, pitch, roll, temp, alt);
+    uint64_t i = 0;
+    while (true)
+    {
+        vector_t va, vg, vm;
+
+        // Get the Accelerometer, Gyroscope and Magnetometer values.
+        ESP_ERROR_CHECK(get_accel_gyro_mag(&va, &vg, &vm));
+
+        // Transform these values to the orientation of our device.
+        transform_accel_gyro(&va);
+        transform_accel_gyro(&vg);
+        transform_mag(&vm);
+
+        // Apply the AHRS algorithm
+        MadgwickAHRSupdate(DEG2RAD(vg.x), DEG2RAD(vg.y), DEG2RAD(vg.z),
+                        va.x, va.y, va.z,
+                        vm.x, vm.y, vm.z);
+
+        // Print the data out every 100 items
+        if (i++ % 300 == 0)
+        {
+            float temp;
+            ESP_ERROR_CHECK(get_temperature_celsius(&temp));
+
+            float heading, pitch, roll;
+            MadgwickGetEulerAnglesDegrees(&heading, &pitch, &roll);
+            ESP_LOGI(TAG, "heading: %2.3f°, pitch: %2.3f°, roll: %2.3f°, Temp %2.3f°C", heading, pitch, roll, temp);
+            post_to_websocket(&heading, &pitch,  &roll, &temp);
+
+            //Make the WDT happy
+            esp_task_wdt_reset();
+        }
+
+        pauses();
+    }
+}
+
+static void sensor_task(/*void *arg*/)
+{
+
+#ifdef CONFIG_CALIBRATION_MODE
+  calibrate_gyro();
+  calibrate_accel();
+  calibrate_mag();
+#else
+  run_sensor();
+#endif
+
+  // Exit
+  vTaskDelay(100 / portTICK_PERIOD_MS);
+  i2c_driver_delete(I2C_MASTER_NUM);
+
+  vTaskDelete(NULL);
+}
+
+void app_main(void)
+{
+    //mcpwm_setup();
+    //hcsr04_setup();
+    websocket_setup();
+
+    xTaskCreate(sensor_task, "sensor_task", 2048, NULL, 10, NULL);
+
 }
