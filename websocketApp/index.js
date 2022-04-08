@@ -7,6 +7,18 @@ const wss = new WebSocketServer.Server({ port: 8080 })
 
 var dataHolder = "nan"
 
+function return_json_from_str(str){
+    const myArray = str.split("-");
+
+    var sensors = {
+        heading: myArray[0],
+        pitch : myArray[1],
+        roll: myArray[2]
+    };
+
+    return sensors;
+}
+
 
 let sockets = [];
 wss.on("connection", ws => {
@@ -15,7 +27,9 @@ wss.on("connection", ws => {
 
     ws.on("message", data => {
         console.log(`Client has sent us: ${data}`)
-        dataHolder = String(data)
+        dataHolder = String(data);
+        var foo = data;
+        //jsonStr = return_json_from_str(dataHolder);
         sockets.forEach(s => {
             s.send(dataHolder);
         });

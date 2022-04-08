@@ -6,20 +6,45 @@
 
 </head>
 <body>
-    <p id = "foo"></p>
+    <table>
+    <caption>Sensors</caption>
+    <thead>
+        <tr>
+        <th>Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Heading</td>
+            <td id = "foo">0</td>
+        </tr>
+        <tr>
+            <td>Pitch</td>
+            <td id = "foo1">0</td>
+        </tr>
+        <tr>
+            <td>roll:</td>
+            <td id = "foo2"> 0</td>
+        </tr>
+    </tbody>
+    </table>
 
     <script>
-        parag = document.getElementById("foo")
-        socket = new WebSocket("ws://localhost:8080")
+        foo = document.getElementById("foo");
+        foo1 = document.getElementById("foo1");
+        foo2 = document.getElementById("foo2");
+        socket = new WebSocket("ws://localhost:8080");
 
         socket.addEventListener('open', function (event) {
-            console.log('Hello Server!');
+            //console.log('Hello Server!');
         });
 
         socket.onmessage = function(event) {
-            console.log(`[message] Data received from server: ${event.data}`);
-            var msg = event.data;
-            parag.innerHTML = msg;
+            //console.log(`[message] Data received from server: ${event.data}`);
+            var obj = JSON.parse(event.data);
+            foo.innerHTML = obj.heading;
+            foo1.innerHTML = obj.pitch;
+            foo2.innerHTML = obj.roll;
         };
 
         socket.onclose = function(event) {
