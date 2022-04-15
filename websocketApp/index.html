@@ -2,37 +2,120 @@
 <html lang=”en”>
 <head>
     <title>Hackomation</title>
+    <style>
+        #main_div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sensor_table {
+            font-family: Arial, Helvetica, sans-serif;
+            border-collapse: collapse;
+            width: 25%;
+        }
+
+        #sensor_table th {
+            padding-top: 12px;
+            padding-bottom: 12px;
+            text-align: left;
+            background-color: #04AA6D;
+            color: white;
+        }
+
+        #sensor_table th, #sensor_table td {
+            text-align: left;
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        #sensor_table tr:nth-child(even){
+            background-color: #f2f2f2;
+        }
+
+        #sensor_table tr:hover {
+            background-color: #ddd;
+        }
 
 
+        #caption {
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: bolder;
+            font-size: large;
+        }
+    </style>
 </head>
 <body>
-    <table>
-    <caption>Sensors</caption>
-    <thead>
-        <tr>
-        <th>Value</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>Heading</td>
-            <td id = "foo">0</td>
-        </tr>
-        <tr>
-            <td>Pitch</td>
-            <td id = "foo1">0</td>
-        </tr>
-        <tr>
-            <td>roll:</td>
-            <td id = "foo2"> 0</td>
-        </tr>
-    </tbody>
-    </table>
+    <div id = "main_div">
+        <table id = "sensor_table">
+            <caption id = "caption">Sensors</caption>
+            <thead>
+                <tr>
+                <th>Variable</th>
+                <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Heading:</td>
+                    <td id = "heading">0</td>
+                </tr>
+                <tr>
+                    <td>Pitch:</td>
+                    <td id = "pitch">0</td>
+                </tr>
+                <tr>
+                    <td>roll:</td>
+                    <td id = "roll"> 0</td>
+                </tr>
+                <tr>
+                    <td>temperature:</td>
+                    <td id = "temp"> 0</td>
+                </tr>
+                <tr>
+                    <td>ultrasonic height:</td>
+                    <td id = "sonic_height"> 0</td>
+                </tr>
+                <tr>
+                    <td>barometric altitude:</td>
+                    <td id = "bar_height"> 0</td>
+                </tr>
+                <tr>
+                    <td>GPS altitude:</td>
+                    <td id = "gps_altitude"> 0</td>
+                </tr>
+                <tr>
+                    <td>latitude:</td>
+                    <td id = "lat"> 0</td>
+                </tr>
+                <tr>
+                    <td>longitude:</td>
+                    <td id = "lon"> 0</td>
+                </tr>
+                <tr>
+                    <td>speed:</td>
+                    <td id = "speed"> 0</td>
+                </tr>
+                <tr>
+                    <td>number of satelites:</td>
+                    <td id = "satelites"> 0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <script>
-        foo = document.getElementById("foo");
-        foo1 = document.getElementById("foo1");
-        foo2 = document.getElementById("foo2");
+        headingVal = document.getElementById("heading");
+        pitchVal = document.getElementById("pitch");
+        rollVal = document.getElementById("roll");
+        tempVal = document.getElementById("temp");
+        sonicVal = document.getElementById("sonic_height");
+        barVal = document.getElementById("bar_height");
+        gpsAlt = document.getElementById("gps_altitude");
+        latitude = document.getElementById("lat");
+        longitude = document.getElementById("lon");
+        gpsSpeed = document.getElementById("speed");
+        sats = document.getElementById("satelites");
         socket = new WebSocket("ws://localhost:8080");
 
         socket.addEventListener('open', function (event) {
@@ -42,9 +125,17 @@
         socket.onmessage = function(event) {
             //console.log(`[message] Data received from server: ${event.data}`);
             var obj = JSON.parse(event.data);
-            foo.innerHTML = obj.heading;
-            foo1.innerHTML = obj.pitch;
-            foo2.innerHTML = obj.roll;
+            headingVal.innerHTML = obj.heading;
+            pitchVal.innerHTML = obj.pitch;
+            rollVal.innerHTML = obj.roll;
+            tempVal.innerHTML = obj.temp;
+            sonicVal.innerHTML = obj.HCSR04;
+            barVal.innerHTML = obj.baro_alt;
+            gpsAlt.innerHTML = obj.gps_alt;
+            latitude.innerHTML = obj.lat;
+            longitude.innerHTML = obj.lon;
+            gpsSpeed.innerHTML = obj.velocity;
+            sats.innerHTML = obj.num_sats;
         };
 
         socket.onclose = function(event) {
