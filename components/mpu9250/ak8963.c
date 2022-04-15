@@ -23,6 +23,8 @@
 #include "mpu9250.h"
 #include "ak8963.h"
 
+#define MPU9265_SENSOR_ADDR (0x68)
+
 static const char *TAG = "ak8963";
 
 static bool initialised = false;
@@ -143,7 +145,7 @@ esp_err_t ak8963_get_mag(vector_t *v)
 esp_err_t ak8963_get_mag_raw(uint8_t bytes[6])
 {
     //printf("ak8963_getrwamag\n");
-  i2c_read_bytes(AK8963_XOUT_L, bytes, 6);
+  i2c_read_bytes(MPU9265_SENSOR_ADDR, AK8963_XOUT_L, bytes, 6);
   // ESP_LOGW(TAG, "mag raw -> %02x %02x %02x %02x %02x %02x", bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]);
 
   // For some reason when we read ST2 (Status 2) just after reading byte, this ensures the
@@ -164,7 +166,7 @@ esp_err_t ak8963_get_cntl(uint8_t *mode)
 
 esp_err_t ak8963_set_cntl(uint8_t mode)
 {
-  return i2c_write_byte(i2c_num, AK8963_ADDRESS, AK8963_CNTL, mode);
+  return i2c_write_byte(MPU9265_SENSOR_ADDR, AK8963_ADDRESS, AK8963_CNTL);
 }
 
 void ak8963_print_settings(void)

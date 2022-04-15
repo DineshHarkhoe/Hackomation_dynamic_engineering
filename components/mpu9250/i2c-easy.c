@@ -83,49 +83,28 @@ esp_err_t i2c_write_bytes(i2c_port_t i2c_num, uint8_t periph_address, uint8_t re
   return ret;
 }
 
+/*
 esp_err_t i2c_write_byte(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg_address, uint8_t data)
 {
   return i2c_write_bytes(i2c_num, periph_address, reg_address, &data, 1);
 }
+*/
 
-esp_err_t i2c_read_bytes(uint8_t reg_addr, uint8_t *data, size_t len)
-{
-    //printf("i2c_read_byte_gyro_accel_mag\n");
-    return i2c_master_write_read_device(I2C_MASTER_NUM, MPU9265_SENSOR_ADDR, &reg_addr, 1, data, len, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+esp_err_t i2c_write_byte(uint8_t periph_address, uint8_t reg_addr, uint8_t data){
+    uint8_t write_buf[2] = {reg_addr, data};
 
+    return i2c_master_write_to_device(I2C_MASTER_NUM, periph_address, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
 }
 
-/*
-esp_err_t i2c_read_bytes(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg_address, uint8_t *data, size_t data_len)
+esp_err_t i2c_read_bytes(uint8_t periph_address, uint8_t reg_addr, uint8_t *data, size_t len)
 {
-  int ret;
-  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-  i2c_master_start(cmd);
-  i2c_master_write_byte(cmd, periph_address << 1 | WRITE_BIT, ACK_CHECK_EN);
-  i2c_master_write_byte(cmd, reg_address, ACK_CHECK_EN);
-  i2c_master_stop(cmd);
-  ret = i2c_master_cmd_begin(i2c_num, cmd, 1000 / portTICK_PERIOD_MS);
-  i2c_cmd_link_delete(cmd);
-
-  if (ret != ESP_OK)
-  {
-    return ret;
-  }
-
-  cmd = i2c_cmd_link_create();
-  i2c_master_start(cmd);
-  i2c_master_write_byte(cmd, periph_address << 1 | READ_BIT, ACK_CHECK_EN);
-  i2c_master_read(cmd, data, data_len, LAST_NACK_VAL);
-  i2c_master_stop(cmd);
-  ret = i2c_master_cmd_begin(i2c_num, cmd, 1000 / portTICK_PERIOD_MS);
-  i2c_cmd_link_delete(cmd);
-
-  return ret;
-}*/
+    //printf("i2c_read_byte_gyro_accel_mag\n");
+    return i2c_master_write_read_device(I2C_MASTER_NUM, periph_address, &reg_addr, 1, data, len, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+}
 
 esp_err_t i2c_read_byte(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg_address, uint8_t *data)
 {
-  return i2c_read_bytes(reg_address, data, 1);
+  return i2c_read_bytes(MPU9265_SENSOR_ADDR, reg_address, data, 1);
 }
 
 uint8_t get_bit_mask(uint8_t bit, uint8_t length)
@@ -137,7 +116,7 @@ esp_err_t i2c_write_bits(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg
 {
   uint8_t data[1];
 
-  int ret = i2c_read_bytes(reg_address, data, 1);
+  int ret = i2c_read_bytes(MPU9265_SENSOR_ADDR, reg_address, data, 1);
   if (ret != ESP_OK)
   {
     return ret;

@@ -43,7 +43,7 @@ esp_err_t i2c_master_init(uint8_t i2c_num, uint8_t gpio_sda, uint8_t gpio_scl);
  *     - ESP_ERR_TIMEOUT Operation timeout because the bus is busy.
  */
 esp_err_t i2c_write_bytes(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg_address, uint8_t *data, size_t data_len);
-esp_err_t i2c_write_byte(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg_address, uint8_t data);
+esp_err_t i2c_write_byte(uint8_t periph_address, uint8_t reg_addr, uint8_t data);
 
 /**
  *
@@ -61,7 +61,7 @@ esp_err_t i2c_write_byte(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg
  */
 //esp_err_t i2c_read_bytes(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg_address, uint8_t *data, size_t data_len);    //old
 esp_err_t i2c_read_byte(i2c_port_t i2c_num, uint8_t periph_address, uint8_t reg_address, uint8_t *data);
-esp_err_t i2c_read_bytes(uint8_t reg_addr, uint8_t *data, size_t len);
+esp_err_t i2c_read_bytes(uint8_t periph_address, uint8_t reg_addr, uint8_t *data, size_t len);
 
 /**
  * Write one bit.  Note, this will do a read to get the existing value, then a write.

@@ -26,6 +26,7 @@
 #define I2C_MASTER_SCL_IO 19      /*!< gpio number for I2C master clock */
 #define I2C_MASTER_SDA_IO 18     /*!< gpio number for I2C master data  */
 #define I2C_MASTER_NUM I2C_NUM_0 /*!< I2C port number for master dev */
+#define MPU9265_SENSOR_ADDR (0x68)
 
 static const char *TAG = "mpu9250";
 
@@ -195,7 +196,7 @@ esp_err_t get_accel(vector_t *v)
   esp_err_t ret;
   uint8_t bytes[6];
 
-  ret = i2c_read_bytes(MPU9250_ACCEL_XOUT_H, bytes, 6);
+  ret = i2c_read_bytes(MPU9265_SENSOR_ADDR, MPU9250_ACCEL_XOUT_H, bytes, 6);
   if (ret != ESP_OK)
   {
     return ret;
@@ -221,7 +222,7 @@ esp_err_t get_gyro(vector_t *v)
 {
   esp_err_t ret;
   uint8_t bytes[6];
-  ret = i2c_read_bytes(MPU9250_GYRO_XOUT_H, bytes, 6);
+  ret = i2c_read_bytes(MPU9265_SENSOR_ADDR, MPU9250_GYRO_XOUT_H, bytes, 6);
   if (ret != ESP_OK)
   {
     return ret;
@@ -238,7 +239,7 @@ esp_err_t get_accel_gyro(vector_t *va, vector_t *vg)
   esp_err_t ret;
   uint8_t bytes[14];
   //ret = i2c_read_bytes(I2C_MASTER_NUM, MPU9250_I2C_ADDR, MPU9250_ACCEL_XOUT_H, bytes, 14);    //old
-  ret = i2c_read_bytes(MPU9250_ACCEL_XOUT_H, bytes, 14);
+  ret = i2c_read_bytes(MPU9265_SENSOR_ADDR, MPU9250_ACCEL_XOUT_H, bytes, 14);
   if (ret != ESP_OK)
   {
     return ret;
@@ -286,7 +287,7 @@ esp_err_t get_device_id(uint8_t *val)
 esp_err_t get_temperature_raw(uint16_t *val)
 {
   uint8_t bytes[2];
-  esp_err_t ret = i2c_read_bytes(MPU9250_TEMP_OUT_H, bytes, 2);
+  esp_err_t ret = i2c_read_bytes(MPU9265_SENSOR_ADDR, MPU9250_TEMP_OUT_H, bytes, 2);
   if (ret != ESP_OK)
   {
     return ret;
