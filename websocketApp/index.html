@@ -2,9 +2,24 @@
 <html lang=”en”>
 <head>
     <title>Hackomation</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="" />
+
     <style>
-        #main_div {
+        #horizontal_layout {
             display: flex;
+        }
+        #map {
+            display: flex;
+            flex: 2;
+            align-items: center;
+            justify-content: center;
+            height: 500px;
+            width: 800px;
+        }
+
+        #sensor {
+            display: flex;
+            flex: 1;
             align-items: center;
             justify-content: center;
         }
@@ -12,7 +27,7 @@
         #sensor_table {
             font-family: Arial, Helvetica, sans-serif;
             border-collapse: collapse;
-            width: 25%;
+            width: 100%;
         }
 
         #sensor_table th {
@@ -37,7 +52,6 @@
             background-color: #ddd;
         }
 
-
         #caption {
             font-family: Arial, Helvetica, sans-serif;
             font-weight: bolder;
@@ -46,64 +60,68 @@
     </style>
 </head>
 <body>
-    <div id = "main_div">
-        <table id = "sensor_table">
-            <caption id = "caption">Sensors</caption>
-            <thead>
-                <tr>
-                <th>Variable</th>
-                <th>Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Heading:</td>
-                    <td id = "heading">0</td>
-                </tr>
-                <tr>
-                    <td>Pitch:</td>
-                    <td id = "pitch">0</td>
-                </tr>
-                <tr>
-                    <td>roll:</td>
-                    <td id = "roll"> 0</td>
-                </tr>
-                <tr>
-                    <td>temperature:</td>
-                    <td id = "temp"> 0</td>
-                </tr>
-                <tr>
-                    <td>ultrasonic height:</td>
-                    <td id = "sonic_height"> 0</td>
-                </tr>
-                <tr>
-                    <td>barometric altitude:</td>
-                    <td id = "bar_height"> 0</td>
-                </tr>
-                <tr>
-                    <td>GPS altitude:</td>
-                    <td id = "gps_altitude"> 0</td>
-                </tr>
-                <tr>
-                    <td>latitude:</td>
-                    <td id = "lat"> 0</td>
-                </tr>
-                <tr>
-                    <td>longitude:</td>
-                    <td id = "lon"> 0</td>
-                </tr>
-                <tr>
-                    <td>speed:</td>
-                    <td id = "speed"> 0</td>
-                </tr>
-                <tr>
-                    <td>number of satelites:</td>
-                    <td id = "satelites"> 0</td>
-                </tr>
-            </tbody>
-        </table>
+    <div id = "horizontal_layout">
+        <div id = "map"></div>
+        <div id = "sensor">
+            <table id = "sensor_table">
+                <caption id = "caption">Sensors</caption>
+                <thead>
+                    <tr>
+                    <th>Variable</th>
+                    <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Heading:</td>
+                        <td id = "heading">0</td>
+                    </tr>
+                    <tr>
+                        <td>Pitch:</td>
+                        <td id = "pitch">0</td>
+                    </tr>
+                    <tr>
+                        <td>roll:</td>
+                        <td id = "roll"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>temperature:</td>
+                        <td id = "temp"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>ultrasonic height:</td>
+                        <td id = "sonic_height"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>barometric altitude:</td>
+                        <td id = "bar_height"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>GPS altitude:</td>
+                        <td id = "gps_altitude"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>latitude:</td>
+                        <td id = "lat"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>longitude:</td>
+                        <td id = "lon"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>speed:</td>
+                        <td id = "speed"> 0</td>
+                    </tr>
+                    <tr>
+                        <td>number of satelites:</td>
+                        <td id = "satelites"> 0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
     <script>
         headingVal = document.getElementById("heading");
         pitchVal = document.getElementById("pitch");
@@ -118,8 +136,17 @@
         sats = document.getElementById("satelites");
         socket = new WebSocket("ws://localhost:8080");
 
+        let mapOptions = {
+            center: [5.8169, -55.231],
+            zoom: 10,
+            zoomControl: false
+        }
+        var map = L.map('map', mapOptions).setView([5.839851, -55.223194], 20);
+        L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        var home = L.marker([5.8398, -55.22342]).addTo(map);
+        home.bindPopup("Home");
+
         socket.addEventListener('open', function (event) {
-            //console.log('Hello Server!');
         });
 
         socket.onmessage = function(event) {
@@ -136,6 +163,9 @@
             longitude.innerHTML = obj.lon;
             gpsSpeed.innerHTML = obj.velocity;
             sats.innerHTML = obj.num_sats;
+
+            var marker = L.marker([obj.lat, obj.lon]).addTo(map);
+
         };
 
         socket.onclose = function(event) {
@@ -151,6 +181,12 @@
         console.log(`[error] ${error.message}`);
         };
 
+
     </script>
 </body>
 </html>
+
+
+
+<script src='https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.js'></script>
+<link href='https://api.mapbox.com/mapbox-gl-js/v2.8.1/mapbox-gl.css' rel='stylesheet' />
