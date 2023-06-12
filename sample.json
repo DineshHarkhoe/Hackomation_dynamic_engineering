@@ -1,0 +1,11 @@
+{
+  "name": "Bard",
+  "type": "large language model",
+  "created": "2023-06-12T11:08:47Z",
+  "skills": [
+    "generate text",
+    "translate languages",
+    "write different kinds of creative content",
+    "answer your questions in an informative way"
+  ]
+}
